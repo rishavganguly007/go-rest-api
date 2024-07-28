@@ -1,27 +1,20 @@
 package main
 
 import (
-	"net/http"
-
-	"example.com/go-rest-api/models"
+	
+	"example.com/go-rest-api/db"
+	"example.com/go-rest-api/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	db.InitDB()
 	server := gin.Default() // configures a http server
 	
-	server.GET("/events", getEvents)
-	server.POST("/events", createEvent)
+	routes.RegisterRoutes(server)
+	
 	server.Run(":8080") //localhost port
 
 }
 
-func createEvent(context *gin.Context){
-	var event models.Event
-	context.ShouldBind(&event)
-}
-func getEvents(context *gin.Context) {
-	events := models.GetAllEvents()
-	context.JSON(http.StatusOK, events)
-}
