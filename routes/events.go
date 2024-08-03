@@ -5,18 +5,12 @@ import (
 	"strconv"
 
 	"example.com/go-rest-api/models"
-	"example.com/go-rest-api/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func createEvent(context *gin.Context){
-	token := context.Request.Header.Get("Authorization")
-	 
-	if token == "" || utils.VerifyToken(token) != nil{
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "not auhtorised"})
-	}
-
+	
 	var event models.Event
 	err := context.ShouldBind(&event)
 	if err != nil {
@@ -24,8 +18,8 @@ func createEvent(context *gin.Context){
 		return
 	}
 
-	event.Id = 1
-	event.UserId = 1
+	userId := context.GetInt64("userId")
+	event.UserId = userId
 
 	err = event.Save()
 
@@ -72,7 +66,8 @@ func updateEvent(context *gin.Context) {
 		context.JSON(http.StatusNotFound, gin.H{"message": "id not available"})
 		return
 	}
-
+	
+	
 	var updated models.Event
 	err = context.ShouldBind(&event)
 	if err != nil {
@@ -80,6 +75,12 @@ func updateEvent(context *gin.Context) {
 		return
 	}
 
+	userId := context.GetInt64("userId")
+	event.UserId = userId
+
+	if event.UserId != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "could not parse eventId"})
+	}
 	updated.Id = eventId
 	err = updated.Update(eventId)
 	if err != nil {
