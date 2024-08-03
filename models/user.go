@@ -1,11 +1,16 @@
 package models
 
-import "example.com/go-rest-api/db"
+import (
+	"errors"
+
+	"example.com/go-rest-api/db"
+	"example.com/go-rest-api/utils"
+)
 
 type User struct {
 	Id       int64
-	Email    string `binding:"required`
-	Password string `binding:"required`
+	Email    string `binding:"required"`
+	Password string `binding:"required"`
 }
 
 func (u User) Save() error {
@@ -17,7 +22,12 @@ func (u User) Save() error {
 		return err
 	}
 	defer stmt.Close()
-	res, err := stmt.Exec(u.Email, u.Password)
+	hashedPassword, err := utils.HashPassword(u.Password)
+	if err != nil {
+		return err
+	}
+
+	res, err := stmt.Exec(u.Email, hashedPassword)
 	if err != nil {
 		return err
 	}
@@ -26,4 +36,23 @@ func (u User) Save() error {
 
 	u.Id = id
 	return err
+}
+
+func (u User) ValidateCredentials() error{
+	query := "SELECT id, password FROM users WHERE email=?"
+
+	row := db.DB.QueryRow(query, u.Email)
+	var retreivedPassword string
+	err := row.Scan(&u.Id, &retreivedPassword)
+
+	if err != nil {
+		return err
+	}
+	passwordValid := utils.CheckPasswordHash(u.Password, retreivedPassword)
+
+	if !passwordValid {
+		return errors.New("credentials Invalid")
+	}
+
+	return nil 
 }
